@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Home Assistant setup script."""
 from datetime import datetime as dt
-from setuptools import setup
+from setuptools import setup, find_packages
 
 import homeassistant.const as hass_const
 
@@ -29,18 +29,28 @@ PROJECT_URLS = {
     'Forum': 'https://community.home-assistant.io/',
 }
 
+PACKAGES = find_packages(exclude=['tests', 'tests.*'])
+
 REQUIRES = [
-    'aiohttp==3.3.2',
-    'astral==1.6.1',
-    'async_timeout==3.0.0',
-    'attrs==18.1.0',
-    'certifi>=2018.04.16',
-    'jinja2>=2.10',
+    'aiohttp==3.5.4',
+    'astral==1.10.1',
+    'async_timeout==3.0.1',
+    'attrs==19.1.0',
+    'bcrypt==3.1.7',
+    'certifi>=2019.6.16',
+    'importlib-metadata==0.18',
+    'jinja2>=2.10.1',
+    'PyJWT==1.7.1',
+    # PyJWT has loose dependency. We want the latest one.
+    'cryptography==2.7',
     'pip>=8.0.3',
-    'pytz>=2018.04',
-    'pyyaml>=3.11,<4',
-    'requests==2.19.1',
-    'voluptuous==0.11.1',
+    'python-slugify==3.0.2',
+    'pytz>=2019.01',
+    'pyyaml==5.1.1',
+    'requests==2.22.0',
+    'ruamel.yaml==0.15.99',
+    'voluptuous==0.11.5',
+    'voluptuous-serialize==2.1.0',
 ]
 
 MIN_PY_VERSION = '.'.join(map(str, hass_const.REQUIRED_PYTHON_VER))
@@ -53,7 +63,15 @@ setup(
     project_urls=PROJECT_URLS,
     author=PROJECT_AUTHOR,
     author_email=PROJECT_EMAIL,
+    packages=PACKAGES,
+    include_package_data=True,
+    zip_safe=False,
     install_requires=REQUIRES,
     python_requires='>={}'.format(MIN_PY_VERSION),
     test_suite='tests',
+    entry_points={
+        'console_scripts': [
+            'hass = homeassistant.__main__:main'
+        ]
+    },
 )

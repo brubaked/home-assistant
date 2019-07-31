@@ -6,10 +6,11 @@ import pytest
 from homeassistant.core import State
 import homeassistant.components.cover as cover
 import homeassistant.components.climate as climate
-import homeassistant.components.media_player as media_player
+import homeassistant.components.media_player.const as media_player_c
 from homeassistant.components.homekit import get_accessory, TYPES
 from homeassistant.components.homekit.const import (
-    CONF_FEATURE_LIST, FEATURE_ON_OFF, TYPE_OUTLET, TYPE_SWITCH)
+    CONF_FEATURE_LIST, FEATURE_ON_OFF, TYPE_FAUCET, TYPE_OUTLET, TYPE_SHOWER,
+    TYPE_SPRINKLER, TYPE_SWITCH, TYPE_VALVE)
 from homeassistant.const import (
     ATTR_CODE, ATTR_DEVICE_CLASS, ATTR_SUPPORTED_FEATURES,
     ATTR_UNIT_OF_MEASUREMENT, CONF_NAME, CONF_TYPE, TEMP_CELSIUS,
@@ -58,16 +59,12 @@ def test_customize_options(config, name):
     ('Fan', 'fan.test', 'on', {}, {}),
     ('Light', 'light.test', 'on', {}, {}),
     ('Lock', 'lock.test', 'locked', {}, {ATTR_CODE: '1234'}),
-    ('MediaPlayer', 'media_player.test', 'on',
-     {ATTR_SUPPORTED_FEATURES: media_player.SUPPORT_TURN_ON |
-      media_player.SUPPORT_TURN_OFF}, {CONF_FEATURE_LIST:
-                                       {FEATURE_ON_OFF: None}}),
     ('SecuritySystem', 'alarm_control_panel.test', 'armed_away', {},
      {ATTR_CODE: '1234'}),
     ('Thermostat', 'climate.test', 'auto', {}, {}),
     ('Thermostat', 'climate.test', 'auto',
-     {ATTR_SUPPORTED_FEATURES: climate.SUPPORT_TARGET_TEMPERATURE_LOW |
-      climate.SUPPORT_TARGET_TEMPERATURE_HIGH}, {}),
+     {ATTR_SUPPORTED_FEATURES: climate.SUPPORT_TARGET_TEMPERATURE_RANGE}, {}),
+    ('WaterHeater', 'water_heater.test', 'auto', {}, {}),
 ])
 def test_types(type_name, entity_id, state, attrs, config):
     """Test if types are associated correctly."""
@@ -99,13 +96,36 @@ def test_type_covers(type_name, entity_id, state, attrs):
     assert mock_type.called
 
 
+@pytest.mark.parametrize('type_name, entity_id, state, attrs, config', [
+    ('MediaPlayer', 'media_player.test', 'on',
+     {ATTR_SUPPORTED_FEATURES: media_player_c.SUPPORT_TURN_ON |
+      media_player_c.SUPPORT_TURN_OFF}, {CONF_FEATURE_LIST:
+                                         {FEATURE_ON_OFF: None}}),
+    ('TelevisionMediaPlayer', 'media_player.tv', 'on',
+     {ATTR_DEVICE_CLASS: 'tv'}, {}),
+])
+def test_type_media_player(type_name, entity_id, state, attrs, config):
+    """Test if media_player types are associated correctly."""
+    mock_type = Mock()
+    with patch.dict(TYPES, {type_name: mock_type}):
+        entity_state = State(entity_id, state, attrs)
+        get_accessory(None, None, entity_state, 2, config)
+    assert mock_type.called
+
+    if config:
+        assert mock_type.call_args[0][-1] == config
+
+
 @pytest.mark.parametrize('type_name, entity_id, state, attrs', [
     ('BinarySensor', 'binary_sensor.opening', 'on',
      {ATTR_DEVICE_CLASS: 'opening'}),
     ('BinarySensor', 'device_tracker.someone', 'not_home', {}),
+    ('BinarySensor', 'person.someone', 'home', {}),
     ('AirQualitySensor', 'sensor.air_quality_pm25', '40', {}),
     ('AirQualitySensor', 'sensor.air_quality', '40',
      {ATTR_DEVICE_CLASS: 'pm25'}),
+    ('CarbonMonoxideSensor', 'sensor.airmeter', '2',
+     {ATTR_DEVICE_CLASS: 'co'}),
     ('CarbonDioxideSensor', 'sensor.airmeter_co2', '500', {}),
     ('CarbonDioxideSensor', 'sensor.airmeter', '500',
      {ATTR_DEVICE_CLASS: 'co2'}),
@@ -135,9 +155,14 @@ def test_type_sensors(type_name, entity_id, state, attrs):
     ('Switch', 'automation.test', 'on', {}, {}),
     ('Switch', 'input_boolean.test', 'on', {}, {}),
     ('Switch', 'remote.test', 'on', {}, {}),
+    ('Switch', 'scene.test', 'on', {}, {}),
     ('Switch', 'script.test', 'on', {}, {}),
     ('Switch', 'switch.test', 'on', {}, {}),
     ('Switch', 'switch.test', 'on', {}, {CONF_TYPE: TYPE_SWITCH}),
+    ('Valve', 'switch.test', 'on', {}, {CONF_TYPE: TYPE_FAUCET}),
+    ('Valve', 'switch.test', 'on', {}, {CONF_TYPE: TYPE_VALVE}),
+    ('Valve', 'switch.test', 'on', {}, {CONF_TYPE: TYPE_SHOWER}),
+    ('Valve', 'switch.test', 'on', {}, {CONF_TYPE: TYPE_SPRINKLER}),
 ])
 def test_type_switches(type_name, entity_id, state, attrs, config):
     """Test if switch types are associated correctly."""
